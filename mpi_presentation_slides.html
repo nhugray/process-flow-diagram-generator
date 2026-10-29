@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Master Patient Index (MPI) - Báo Cáo Thực Trạng & Luồng Nghiệp Vụ</title>
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@500;600;700;800&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js" integrity="sha384-ZZ1pncU3bQe8y31yfZdMFdSpttDoPmOZg2wguVK9almUodir1PghgT0eY7Mrty8H" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.2/dist/jspdf.umd.min.js" integrity="sha384-en/ztfPSRkGfME4KIm05joYXynqzUgbsG5nMrj/xEFAHXkeZfO3yMK8QQ+mP7p1/" crossorigin="anonymous"></script>
+
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    @page {
+      size: 297mm 210mm; /* A4 Landscape */
+      margin: 0;
+    }
+
+    body {
+      font-family: 'JetBrains Mono', monospace;
+      background: #020617;
+      color: #f8fafc;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .slide {
+      width: 297mm;
+      height: 209.5mm;
+      page-break-after: always;
+      page-break-inside: avoid;
+      background: #020617;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(34, 211, 238, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(167, 139, 250, 0.05) 0%, transparent 20%);
+      padding: 16mm 18mm 14mm 18mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      position: relative;
+      overflow: hidden;
+      border-bottom: 1px solid #0f172a;
+    }
+
+    /* Subtle grid background */
+    .slide::before {
+      content: "";
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background-image: 
+        linear-gradient(to right, rgba(30, 41, 59, 0.3) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(30, 41, 59, 0.3) 1px, transparent 1px);
+      background-size: 30mm 30mm;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .slide > * {
+      position: relative;
+      z-index: 1;
+    }
+
+    /* Slide Header */
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      border-bottom: 1px solid #1e293b;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+    }
+
+    .header-left {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .header-tag-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      background: #22d3ee;
+      border-radius: 50%;
+      box-shadow: 0 0 10px #22d3ee;
+    }
+
+    .pulse-dot.violet { background: #a78bfa; box-shadow: 0 0 10px #a78bfa; }
+    .pulse-dot.emerald { background: #34d399; box-shadow: 0 0 10px #34d399; }
+    .pulse-dot.amber { background: #fbbf24; box-shadow: 0 0 10px #fbbf24; }
+    .pulse-dot.rose { background: #fb7185; box-shadow: 0 0 10px #fb7185; }
+
+    .tag {
+      font-size: 10px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: #38bdf8;
+    }
+
+    h1.title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .subtitle {
+      font-size: 11px;
+      color: #94a3b8;
+      font-weight: 400;
+    }
+
+    .slide-index {
+      font-size: 11px;
+      color: #475569;
+      font-weight: 600;
+      background: rgba(15, 23, 42, 0.8);
+      border: 1px solid #1e293b;
+      padding: 4px 10px;
+      border-radius: 6px;
+    }
+
+    /* Slide Content Container */
+    .content-area {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      justify-content: center;
+    }
+
+    /* Grids */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    /* Modern Dark Cards */
+    .card {
+      background: rgba(15, 23, 42, 0.65);
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    .card.cyan { border-color: rgba(34, 211, 238, 0.4); background: rgba(8, 51, 68, 0.2); }
+    .card.emerald { border-color: rgba(52, 211, 153, 0.4); background: rgba(6, 78, 59, 0.2); }
+    .card.violet { border-color: rgba(167, 139, 250, 0.4); background: rgba(76, 29, 149, 0.2); }
+    .card.amber { border-color: rgba(251, 191, 36, 0.4); background: rgba(120, 53, 15, 0.15); }
+    .card.rose { border-color: rgba(251, 113, 133, 0.4); background: rgba(136, 19, 55, 0.2); }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .card-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    .card-dot.cyan { background: #22d3ee; }
+    .card-dot.emerald { background: #34d399; }
+    .card-dot.violet { background: #a78bfa; }
+    .card-dot.amber { background: #fbbf24; }
+    .card-dot.rose { background: #fb7185; }
+
+    .card h3 {
+      font-size: 12px;
+      font-weight: 700;
+      color: #f1f5f9;
+      letter-spacing: -0.01em;
+    }
+
+    .card p, .card li {
+      font-size: 10px;
+      color: #cbd5e1;
+      line-height: 1.5;
+    }
+
+    .card ul {
+      padding-left: 14px;
+      margin-top: 4px;
+    }
+
+    .card li {
+      margin-bottom: 3px;
+    }
+
+    /* Diagram wrapper */
+    .diagram-box {
+      background: rgba(15, 23, 42, 0.6);
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 10px;
+      position: relative;
+    }
+
+    svg {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    /* Tables */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 9.5px;
+    }
+
+    th, td {
+      padding: 6px 10px;
+      text-align: left;
+      border-bottom: 1px solid #1e293b;
+    }
+
+    th {
+      background: rgba(30, 41, 59, 0.5);
+      color: #38bdf8;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    td {
+      color: #cbd5e1;
+    }
+
+    code {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 9px;
+      background: rgba(30, 41, 59, 0.8);
+      border: 1px solid #334155;
+      padding: 2px 5px;
+      border-radius: 4px;
+      color: #38bdf8;
+    }
+
+    /* Speaker Notes Callout */
+    .speaker-box {
+      background: rgba(15, 23, 42, 0.8);
+      border-left: 3px solid #a78bfa;
+      border-radius: 0 6px 6px 0;
+      padding: 6px 12px;
+      margin-top: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .speaker-label {
+      font-size: 9px;
+      font-weight: 700;
+      color: #a78bfa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      white-space: nowrap;
+    }
+
+    .speaker-text {
+      font-size: 9.5px;
+      color: #cbd5e1;
+      font-style: italic;
+      line-height: 1.4;
+    }
+
+    /* Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 8.5px;
+      font-weight: 700;
+    }
+    .badge-cyan { background: rgba(8, 51, 68, 0.6); color: #22d3ee; border: 1px solid #22d3ee; }
+    .badge-emerald { background: rgba(6, 78, 59, 0.6); color: #34d399; border: 1px solid #34d399; }
+    .badge-violet { background: rgba(76, 29, 149, 0.6); color: #a78bfa; border: 1px solid #a78bfa; }
+    .badge-amber { background: rgba(120, 53, 15, 0.6); color: #fbbf24; border: 1px solid #fbbf24; }
+    .badge-rose { background: rgba(136, 19, 55, 0.6); color: #fb7185; border: 1px solid #fb7185; }
+
+    /* Title Slide Specifics */
+    .title-wrapper {
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 14px;
+      height: 100%;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(34, 211, 238, 0.1);
+      border: 1px solid rgba(34, 211, 238, 0.4);
+      color: #38bdf8;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+    }
+
+    .hero-title {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      font-size: 32px;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: #ffffff;
+      line-height: 1.2;
+      background: linear-gradient(135deg, #ffffff 0%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .hero-sub {
+      font-size: 13px;
+      color: #94a3b8;
+      max-width: 780px;
+      line-height: 1.6;
+    }
+
+    .tech-pill-container {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin-top: 10px;
+    }
+
+    .tech-pill {
+      background: rgba(30, 41, 59, 0.7);
+      border: 1px solid #334155;
+      color: #e2e8f0;
+      padding: 4px 12px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: 600;
+    }
+
+    /* Print adjustments */
+    @media print {
+      body { background: #020617; }
+      .slide {
+        width: 297mm;
+        height: 209.5mm;
+        border: none;
+        margin: 0;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== SLIDE 1: COVER SLIDE ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-tag-row">
+        <div class="pulse-dot"></div>
+        <div class="tag">CAPSTONE DEFENSE &bull; ENTERPRISE HEALTHCARE</div>
+      </div>
+      <div class="slide-index">SLIDE 01 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="title-wrapper">
+        <div class="hero-badge">
+          <span>⚡ CORE MASTER PATIENT INDEX ARCHITECTURE</span>
+        </div>
+        <h1 class="hero-title">MASTER PATIENT INDEX (MPI) WEB SYSTEM</h1>
+        <p class="hero-sub">
+          Hệ thống Quản lý Định danh Bệnh nhân Tập trung: Giải pháp Chuẩn hóa, Khử trùng lặp và Hợp nhất Hồ sơ Bệnh nhân Đa cơ sở Khám chữa bệnh
+        </p>
+
+        <div class="tech-pill-container">
+          <span class="tech-pill">☕ Java 21</span>
+          <span class="tech-pill">🌱 Spring Boot 3.x</span>
+          <span class="tech-pill">🅰️ Angular 18 (Signals)</span>
+          <span class="tech-pill">🐬 MySQL 8.x</span>
+          <span class="tech-pill">🔐 Spring Security (JWT + HttpOnly Cookie)</span>
+          <span class="tech-pill">📊 Apache POI &amp; OpenCSV</span>
+        </div>
+
+        <div style="display: flex; gap: 24px; margin-top: 20px; border-top: 1px solid #1e293b; padding-top: 16px; width: 100%; justify-content: center;">
+          <div style="font-size: 10px; color: #64748b;"><strong>Báo cáo viên:</strong> Full-stack / Backend Software Engineer</div>
+          <div style="font-size: 10px; color: #64748b;"><strong>Mô hình:</strong> Clean Multi-tier Micro-ready Architecture</div>
+          <div style="font-size: 10px; color: #64748b;"><strong>Quy mô:</strong> Enterprise-grade Ingestion &amp; Deduplication</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Kính thưa Hội đồng, em xin trình bày đề tài 'Hệ thống Quản lý Định danh Bệnh nhân Tập trung - MPI Web System'. Đây là nền tảng cốt lõi giải quyết bài toán phân mảnh và trùng lặp hồ sơ y tế giữa các bệnh viện, tiến tới hồ sơ bệnh án điện tử thống nhất."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 2: THỰC TRẠNG PHÂN MẢNH ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot rose"></div>
+          <div class="tag" style="color: #fb7185;">PROBLEM STATEMENT</div>
+        </div>
+        <h1 class="title">Bối Cảnh &amp; Thực Trạng Phân Mảnh Dữ Liệu Y Tế</h1>
+      </div>
+      <div class="slide-index">SLIDE 02 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="grid-3">
+        <div class="card rose">
+          <div class="card-header">
+            <div class="card-dot rose"></div>
+            <h3>1. Ốc Đảo Dữ Liệu (Data Silos)</h3>
+          </div>
+          <p>Mỗi cơ sở y tế (Bệnh viện A, Viện B, Phòng khám C) vận hành hệ thống Quản lý Bệnh viện (HIS) độc lập:</p>
+          <ul>
+            <li>Mỗi viện tự sinh một <code>Local Patient ID</code> riêng biệt cho cùng một con người.</li>
+            <li>Một bệnh nhân đi khám nhiều nơi sở hữu 4 - 5 mã hồ sơ không liên kết.</li>
+            <li>Không có trung tâm liên lạc xác thực danh tính liên viện.</li>
+          </ul>
+        </div>
+
+        <div class="card amber">
+          <div class="card-header">
+            <div class="card-dot amber"></div>
+            <h3>2. Lỗi Nhập Liệu &amp; Không Chuẩn Hóa</h3>
+          </div>
+          <p>Dữ liệu bệnh nhân được tiếp đón thủ công có tỷ lệ sai sót rất lớn:</p>
+          <ul>
+            <li>Lỗi gõ máy tiếng Việt (sai dấu, không dấu, VD: <code>Nguyễn Văn An</code> vs <code>Nguyen Van An</code>).</li>
+            <li>Bệnh nhân không mang CCCD, chỉ nhớ năm sinh (thiếu ngày/tháng).</li>
+            <li>Số điện thoại và địa chỉ thường xuyên biến động theo thời gian.</li>
+          </ul>
+        </div>
+
+        <div class="card violet">
+          <div class="card-header">
+            <div class="card-dot violet"></div>
+            <h3>3. Thiếu Thuật Toán Đối Soát</h3>
+          </div>
+          <p>Hầu hết phần mềm hiện nay chỉ hỗ trợ tìm kiếm chính xác tuyệt đối (Exact Match):</p>
+          <ul>
+            <li>Chỉ cần sai 1 ký tự trong tên hoặc số điện thoại là tạo ra hồ sơ trùng lặp mới.</li>
+            <li>Database bệnh viện phình to với 25% - 35% bản ghi trùng lặp rác.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card" style="background: rgba(15, 23, 42, 0.4); border-color: #334155; margin-top: 4px;">
+        <div style="display: flex; justify-content: space-between; align-items: center;">
+          <div style="font-size: 10px; color: #94a3b8;">
+            <strong style="color: #fb7185;">Hệ quả nhức nhối:</strong> Bác sĩ viện mới không thể xem được tiền sử dị ứng thuốc và bệnh nền ở viện cũ &rarr; Nguy cơ sốc phản vệ và sai phác đồ điều trị nghiêm trọng.
+          </div>
+          <span class="badge badge-rose">CRITICAL CLINICAL RISK</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Hiện nay tại Việt Nam, khi bệnh nhân khám ở BV Bạch Mai rồi chuyển sang BV K, hai viện dùng hai mã số khác nhau. Cộng thêm việc gõ sai dấu tiếng Việt và thiếu CCCD, bác sĩ viện K hoàn toàn 'mù' về tiền sử dị ứng thuốc ở viện trước, gây nguy hiểm trực tiếp tới tính mạng người bệnh."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 3: HẬU QUẢ NGHIÊM TRỌNG ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot rose"></div>
+          <div class="tag" style="color: #fb7185;">IMPACT ANALYSIS</div>
+        </div>
+        <h1 class="title">Tác Động To Lớn Của Trùng Lặp Hồ Sơ Bệnh Nhân</h1>
+      </div>
+      <div class="slide-index">SLIDE 03 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="grid-4">
+        <div class="card rose">
+          <div class="card-header">
+            <div class="card-dot rose"></div>
+            <h3>An Toàn Lâm Sàng</h3>
+          </div>
+          <p>Mất dấu tiền sử dị ứng (Penicillin, NSAIDs), tương tác thuốc chống chỉ định. Bác sĩ không nắm được bệnh án tiền sử tiểu đường, tim mạch.</p>
+          <div style="margin-top: 8px;"><span class="badge badge-rose">Nguy cơ tử vong cao</span></div>
+        </div>
+
+        <div class="card amber">
+          <div class="card-header">
+            <div class="card-dot amber"></div>
+            <h3>Lãng Phí Tài Chính</h3>
+          </div>
+          <p>Bệnh nhân phải xét nghiệm máu, chụp X-quang, CT/MRI lặp lại không cần thiết dù vừa thực hiện ở tuyến dưới cách đó 1-2 ngày.</p>
+          <div style="margin-top: 8px;"><span class="badge badge-amber">Tốn hàng tỷ đồng/năm</span></div>
+        </div>
+
+        <div class="card violet">
+          <div class="card-header">
+            <div class="card-dot violet"></div>
+            <h3>Gian Lận Bảo Hiểm</h3>
+          </div>
+          <p>Khó kiểm soát tình trạng một người khám nhiều cơ sở trong một tuần để lĩnh thuốc BHYT bán ra ngoài hoặc trục lợi chi trả.</p>
+          <div style="margin-top: 8px;"><span class="badge badge-violet">Thất thoát quỹ BHYT</span></div>
+        </div>
+
+        <div class="card cyan">
+          <div class="card-header">
+            <div class="card-dot cyan"></div>
+            <h3>Bế Tắc EHR Quốc Gia</h3>
+          </div>
+          <p>Không thể xây dựng Hồ sơ Sức khỏe Toàn dân (Longitudinal Electronic Health Record) nếu không có mã định danh công dân y tế duy nhất.</p>
+          <div style="margin-top: 8px;"><span class="badge badge-cyan">Chậm chuyển đổi số</span></div>
+        </div>
+      </div>
+
+      <div class="card cyan" style="margin-top: 8px;">
+        <div class="card-header">
+          <div class="card-dot cyan"></div>
+          <h3>Sứ Mệnh Của Đề Tài MPI</h3>
+        </div>
+        <p>Xây dựng hệ thống <strong>Master Patient Index</strong> trung gian chuẩn hóa, đóng vai trò <strong>"Nguồn Chân Lý Duy Nhất" (Single Source of Truth)</strong> kết nối mọi hồ sơ nguồn từ các viện về duy nhất một thực thể con người.</p>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Hậu quả không chỉ dừng ở mặt y khoa mà còn là hàng tỷ đồng thất thoát do xét nghiệm trùng lặp và chi trả bảo hiểm gian lận. Vì vậy, xây dựng Master Patient Index là điều kiện tiên quyết bắt buộc của chuyển đổi số y tế."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 4: GIẢI PHÁP ĐỀ TÀI & GOLDEN RECORD ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot cyan"></div>
+          <div class="tag" style="color: #22d3ee;">SOLUTION OVERVIEW</div>
+        </div>
+        <h1 class="title">Giải Pháp Đề Tài: Master Patient Index &amp; Golden Record</h1>
+      </div>
+      <div class="slide-index">SLIDE 04 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="grid-2">
+        <div class="card cyan">
+          <div class="card-header">
+            <div class="card-dot cyan"></div>
+            <h3>1. Khái Niệm Golden Record (patient_master)</h3>
+          </div>
+          <p>Mỗi công dân trong hệ thống chỉ có duy nhất 1 bản ghi gốc sở hữu mã <code>Enterprise ID (EID)</code>.</p>
+          <ul>
+            <li>Các hồ sơ từ Viện A, Viện B, Viện C (bảng <code>patient</code>) đều được liên kết (link) trỏ về mã EID này.</li>
+            <li>Dữ liệu gốc được làm giàu (enrich) liên tục qua các lần khám của người bệnh.</li>
+            <li>Mọi bác sĩ ở mọi viện khi tra cứu EID đều xem được lịch sử khám tổng thể.</li>
+          </ul>
+        </div>
+
+        <div class="card emerald">
+          <div class="card-header">
+            <div class="card-dot emerald"></div>
+            <h3>2. Cơ Chế So Khớp Lai (Hybrid Deduplication)</h3>
+          </div>
+          <p>Hệ thống không phụ thuộc 100% vào máy móc hoặc 100% vào con người:</p>
+          <ul>
+            <li><strong style="color: #34d399;">Tự động gộp (&ge; 92%):</strong> Điểm tin cậy cao &rarr; Gán thẳng vào Golden Record.</li>
+            <li><strong style="color: #fbbf24;">Duyệt bán tự động (65% - 92%):</strong> Chuyển sang Review Queue cho bác sĩ đối soát Side-by-side.</li>
+            <li><strong style="color: #a78bfa;">Tạo mới (&lt; 65%):</strong> Phát hành một mã EID độc lập mới.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Mini architecture visual -->
+      <div class="diagram-box" style="margin-top: 6px;">
+        <svg viewBox="0 0 1100 130">
+          <defs>
+            <marker id="arr-cyan" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#22d3ee"/></marker>
+          </defs>
+          <!-- Source nodes -->
+          <rect x="20" y="15" width="160" height="40" rx="6" fill="rgba(30, 41, 59, 0.6)" stroke="#64748b" stroke-width="1.5"/>
+          <text x="100" y="32" fill="#e2e8f0" font-size="9" font-weight="600" text-anchor="middle">BV Bạch Mai (HIS 01)</text>
+          <text x="100" y="46" fill="#94a3b8" font-size="8" text-anchor="middle">Local ID: BM-8829</text>
+
+          <rect x="20" y="75" width="160" height="40" rx="6" fill="rgba(30, 41, 59, 0.6)" stroke="#64748b" stroke-width="1.5"/>
+          <text x="100" y="92" fill="#e2e8f0" font-size="9" font-weight="600" text-anchor="middle">Bệnh Viện K (HIS 02)</text>
+          <text x="100" y="106" fill="#94a3b8" font-size="8" text-anchor="middle">Local ID: BVK-0142</text>
+
+          <!-- Arrows to Engine -->
+          <line x1="180" y1="35" x2="330" y2="55" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+          <line x1="180" y1="95" x2="330" y2="75" stroke="#64748b" stroke-width="1.5" marker-end="url(#arr-cyan)"/>
+
+          <!-- MPI Engine Core -->
+          <rect x="330" y="30" width="300" height="70" rx="10" fill="rgba(8, 51, 68, 0.6)" stroke="#22d3ee" stroke-width="2"/>
+          <text x="480" y="55" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">MPI MATCHING &amp; DEDUPLICATION</text>
+          <text x="480" y="73" fill="#cbd5e1" font-size="9" text-anchor="middle">Levenshtein Distance + Blocking Strategy</text>
+          <text x="480" y="87" fill="#94a3b8" font-size="8" text-anchor="middle">Weight Configuration &amp; Threshold Engine</text>
+
+          <!-- Arrow to Master -->
+          <line x1="630" y1="65" x2="760" y2="65" stroke="#22d3ee" stroke-width="2" marker-end="url(#arr-cyan)"/>
+          <text x="695" y="58" fill="#34d399" font-size="8" text-anchor="middle">Unified Link</text>
+
+          <!-- Golden Record -->
+          <rect x="760" y="20" width="310" height="90" rx="10" fill="rgba(6, 78, 59, 0.5)" stroke="#34d399" stroke-width="2"/>
+          <text x="915" y="45" fill="#34d399" font-size="12" font-weight="800" text-anchor="middle">👑 GOLDEN RECORD (patient_master)</text>
+          <text x="915" y="65" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">EID: EID-9920-VN-X8</text>
+          <text x="915" y="82" fill="#cbd5e1" font-size="8.5" text-anchor="middle">Nguyễn Văn An | DOB: 1995-10-23 | CCCD: 001095012345</text>
+          <text x="915" y="96" fill="#94a3b8" font-size="8" text-anchor="middle">Links: [BM-8829, BVK-0142] &bull; 100% History Unified</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Trái tim của giải pháp là bảng patient_master. Hệ thống không xóa hồ sơ gốc của bệnh viện mà tạo ra một mã Enterprise ID (EID) đại diện cho công dân đó, liên kết mọi mã cục bộ về chung một Golden Record duy nhất."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 5: KIẾN TRÚC TỔNG THỂ ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot violet"></div>
+          <div class="tag" style="color: #a78bfa;">SYSTEM ARCHITECTURE</div>
+        </div>
+        <h1 class="title">Kiến Trúc Kỹ Thuật Đa Tầng (Full-Stack Architecture)</h1>
+      </div>
+      <div class="slide-index">SLIDE 05 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="grid-3">
+        <div class="card cyan">
+          <div class="card-header">
+            <div class="card-dot cyan"></div>
+            <h3>1. Presentation (Angular 18)</h3>
+          </div>
+          <ul>
+            <li><strong>Standalone Components:</strong> Tối ưu Bundle size, loại bỏ NgModules truyền thống.</li>
+            <li><strong>Reactive Signals:</strong> Quản lý state phản ứng cực nhanh không gây giật lag.</li>
+            <li><strong>HTTP Interceptors:</strong> Tự động gắn Bearer Token và Refresh Token trong suốt.</li>
+            <li><strong>Design Tokens (Pure SCSS):</strong> Tùy biến Dark Theme y tế mượt mà, không phụ thuộc UI nặng.</li>
+          </ul>
+        </div>
+
+        <div class="card violet">
+          <div class="card-header">
+            <div class="card-dot violet"></div>
+            <h3>2. Business Service (Spring Boot 3)</h3>
+          </div>
+          <ul>
+            <li><strong>Stateless Security:</strong> JWT + Refresh Token trong Cookie <code>HttpOnly</code>.</li>
+            <li><strong>Async Ingestion:</strong> <code>@Async("importTaskExecutor")</code> xử lý ngầm file lớn.</li>
+            <li><strong>Transaction Orchestration:</strong> Sử dụng <code>Propagation.NEVER</code> chống Race Condition.</li>
+            <li><strong>Matching Engine:</strong> Thuật toán 2 giai đoạn (Blocking Strategy + Levenshtein).</li>
+          </ul>
+        </div>
+
+        <div class="card emerald">
+          <div class="card-header">
+            <div class="card-dot emerald"></div>
+            <h3>3. Data &amp; Persistence (MySQL 8)</h3>
+          </div>
+          <ul>
+            <li><strong>11 Bảng Quan Hệ Chuẩn:</strong> <code>patient</code>, <code>patient_master</code>, <code>match_candidate</code>, <code>import_job</code>...</li>
+            <li><strong>Strategic Indexing:</strong> Đánh index khóa chặn (DOB, 3 ký tự đầu tên, 4 số cuối phone).</li>
+            <li><strong>Audit Logging:</strong> Bảng <code>match_decision_log</code> lưu toàn bộ lịch sử gộp/tách.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card" style="background: rgba(15, 23, 42, 0.4); border-color: #334155; margin-top: 6px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 10px;">
+          <div><strong style="color: #38bdf8;">Chuẩn giao tiếp:</strong> RESTful JSON API &bull; <code>ApiResponse&lt;T&gt;</code> &bull; Global Exception Handler (<code>@RestControllerAdvice</code>)</div>
+          <span class="badge badge-emerald">CLEAN ARCHITECTURE</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Hệ thống tuân thủ Clean Architecture. Phía Frontend dùng Angular 18 với kiến trúc Signals mới nhất. Phía Backend Spring Boot 3 chia tách rõ ràng giữa tầng Controller, Service điều phối và Service chạy ngầm độc lập với cơ sở dữ liệu."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 6: LUỒNG 1 - ASYNC BATCH INGESTION ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot emerald"></div>
+          <div class="tag" style="color: #34d399;">BUSINESS WORKFLOW 01</div>
+        </div>
+        <h1 class="title">Luồng Nhập Liệu Hàng Loạt Bất Đồng Bộ (Batch Import Flow)</h1>
+      </div>
+      <div class="slide-index">SLIDE 06 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <!-- SVG Process Flow Diagram following the Skill standard -->
+      <div class="diagram-box">
+        <svg viewBox="0 0 1200 230">
+          <defs>
+            <marker id="arr-em" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#34d399"/></marker>
+            <marker id="arr-vi" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#a78bfa"/></marker>
+            <marker id="arr-cy" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#22d3ee"/></marker>
+          </defs>
+
+          <!-- Prerequisites Bar -->
+          <rect x="20" y="10" width="1160" height="34" rx="6" fill="rgba(30, 41, 59, 0.3)" stroke="#64748b" stroke-width="1" stroke-dasharray="6,4"/>
+          <text x="35" y="31" fill="#94a3b8" font-size="9" font-weight="600">ĐIỀU KIỆN TIÊN QUYẾT (PREREQUISITES):</text>
+          <text x="270" y="31" fill="#cbd5e1" font-size="8.5">• File định dạng chuẩn .xlsx hoặc .csv</text>
+          <text x="520" y="31" fill="#cbd5e1" font-size="8.5">• Đã đăng nhập tài khoản có quyền OPERATOR/ADMIN</text>
+          <text x="860" y="31" fill="#cbd5e1" font-size="8.5">• Cấu hình ThreadPoolTaskExecutor sẵn sàng</text>
+
+          <!-- Start Pill -->
+          <rect x="20" y="90" width="90" height="40" rx="20" fill="rgba(8, 51, 68, 0.5)" stroke="#22d3ee" stroke-width="2"/>
+          <text x="65" y="114" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">Start</text>
+
+          <line x1="110" y1="110" x2="160" y2="110" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arr-cy)"/>
+
+          <!-- Step 1: Upload File -->
+          <circle cx="175" cy="85" r="11" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+          <text x="175" y="89" fill="white" font-size="9" font-weight="700" text-anchor="middle">1</text>
+          <text x="245" y="80" fill="#34d399" font-size="8" text-anchor="middle">👤 Operator</text>
+          <rect x="175" y="90" width="140" height="65" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+          <text x="245" y="112" fill="white" font-size="10" font-weight="600" text-anchor="middle">Tải Lên File</text>
+          <text x="245" y="128" fill="#94a3b8" font-size="8" text-anchor="middle">Upload .xlsx / .csv</text>
+          <text x="245" y="142" fill="#94a3b8" font-size="7.5" text-anchor="middle">Check dung lượng &lt; 500MB</text>
+
+          <line x1="315" y1="110" x2="365" y2="110" stroke="#34d399" stroke-width="1.5" marker-end="url(#arr-em)"/>
+          <text x="340" y="103" fill="#94a3b8" font-size="7.5" text-anchor="middle">Multipart</text>
+
+          <!-- Step 2: Orchestrator Create Job -->
+          <circle cx="380" cy="85" r="11" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="380" y="89" fill="white" font-size="9" font-weight="700" text-anchor="middle">2</text>
+          <text x="450" y="80" fill="#a78bfa" font-size="8" text-anchor="middle">⚡ Orchestrator</text>
+          <rect x="380" y="90" width="140" height="65" rx="8" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="450" y="112" fill="white" font-size="10" font-weight="600" text-anchor="middle">Khởi Tạo ImportJob</text>
+          <text x="450" y="128" fill="#cbd5e1" font-size="8" text-anchor="middle">Lưu status = PENDING</text>
+          <text x="450" y="142" fill="#38bdf8" font-size="7.5" text-anchor="middle">Propagation.NEVER</text>
+
+          <line x1="520" y1="110" x2="570" y2="110" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-vi)"/>
+          <text x="545" y="103" fill="#94a3b8" font-size="7.5" text-anchor="middle">jobId</text>
+
+          <!-- Step 3: Trigger Async Worker -->
+          <circle cx="585" cy="85" r="11" fill="#1e293b" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="585" y="89" fill="white" font-size="9" font-weight="700" text-anchor="middle">3</text>
+          <text x="655" y="80" fill="#a78bfa" font-size="8" text-anchor="middle">🤖 Async Thread</text>
+          <rect x="585" y="90" width="140" height="65" rx="8" fill="rgba(76, 29, 149, 0.4)" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="655" y="112" fill="white" font-size="10" font-weight="600" text-anchor="middle">Kích Hoạt Luồng Nền</text>
+          <text x="655" y="128" fill="#94a3b8" font-size="8" text-anchor="middle">@Async("importExecutor")</text>
+          <text x="655" y="142" fill="#94a3b8" font-size="7.5" text-anchor="middle">Giải phóng HTTP Request</text>
+
+          <line x1="725" y1="110" x2="775" y2="110" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arr-vi)"/>
+          <text x="750" y="103" fill="#94a3b8" font-size="7.5" text-anchor="middle">stream</text>
+
+          <!-- Step 4: Parse & Validate Rows -->
+          <circle cx="790" cy="85" r="11" fill="#1e293b" stroke="#fbbf24" stroke-width="1.5"/>
+          <text x="790" y="89" fill="white" font-size="9" font-weight="700" text-anchor="middle">4</text>
+          <text x="860" y="80" fill="#fbbf24" font-size="8" text-anchor="middle">⚙️ POI / OpenCSV</text>
+          <rect x="790" y="90" width="140" height="65" rx="8" fill="rgba(120, 53, 15, 0.4)" stroke="#fbbf24" stroke-width="1.5"/>
+          <text x="860" y="112" fill="white" font-size="10" font-weight="600" text-anchor="middle">Đọc Từng Dòng</text>
+          <text x="860" y="128" fill="#cbd5e1" font-size="8" text-anchor="middle">Validate cấu trúc dòng</text>
+          <text x="860" y="142" fill="#94a3b8" font-size="7.5" text-anchor="middle">Gửi sang Matching Engine</text>
+
+          <line x1="930" y1="110" x2="980" y2="110" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arr-cy)"/>
+
+          <!-- Step 5: Save Job & Polling -->
+          <circle cx="995" cy="85" r="11" fill="#1e293b" stroke="#34d399" stroke-width="1.5"/>
+          <text x="995" y="89" fill="white" font-size="9" font-weight="700" text-anchor="middle">5</text>
+          <text x="1065" y="80" fill="#34d399" font-size="8" text-anchor="middle">📊 UI Polling</text>
+          <rect x="995" y="90" width="140" height="65" rx="8" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1.5"/>
+          <text x="1065" y="112" fill="white" font-size="10" font-weight="600" text-anchor="middle">Báo Cáo Tiến Độ</text>
+          <text x="1065" y="128" fill="#34d399" font-size="8" text-anchor="middle">Status = COMPLETED</text>
+          <text x="1065" y="142" fill="#94a3b8" font-size="7.5" text-anchor="middle">Lưu log vào import_detail</text>
+
+          <!-- Polling loop-back arrow under the flow -->
+          <path d="M 1065 155 L 1065 195 L 450 195 L 450 155" fill="none" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arr-cy)"/>
+          <text x="750" y="188" fill="#38bdf8" font-size="8" text-anchor="middle">🔄 Polling tiến độ mỗi 2.5s (processedRows / totalRows)</text>
+        </svg>
+      </div>
+
+      <div class="grid-2" style="margin-top: 6px;">
+        <div class="card emerald">
+          <div class="card-header"><div class="card-dot emerald"></div><h3>Cơ Chế Chịu Lỗi Từng Dòng (Fault-Tolerance)</h3></div>
+          <p>Nếu dòng 25 bị sai ngày sinh, hệ thống không hủy toàn bộ file. Dòng đó được ghi nhận lỗi vào <code>import_job_detail</code> và luồng tiếp tục xử lý các dòng còn lại.</p>
+        </div>
+        <div class="card violet">
+          <div class="card-header"><div class="card-dot violet"></div><h3>Giải Quyết Lỗi Race Condition Transaction</h3></div>
+          <p>Tách Orchestrator với <code>Propagation.NEVER</code> đảm bảo MySQL commit bản ghi Job xong thì Worker chạy ngầm mới được khởi chạy, xóa bỏ 100% lỗi <code>EntityNotFound</code>.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Quy trình Import file được thiết kế theo mô hình bất đồng bộ hoàn toàn. Khi cơ sở y tế nạp file 10.000 bệnh nhân, server phản hồi ngay lập tức và phân tích từng dòng dưới nền, báo tiến độ qua cơ chế polling liên tục về giao diện Angular."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 7: LUỒNG 2 - BLOCKING & MATCHING ENGINE ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot cyan"></div>
+          <div class="tag" style="color: #22d3ee;">BUSINESS WORKFLOW 02</div>
+        </div>
+        <h1 class="title">Động Cơ So Khớp Bệnh Nhân (2-Stage Matching Engine)</h1>
+      </div>
+      <div class="slide-index">SLIDE 07 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="diagram-box">
+        <svg viewBox="0 0 1150 200">
+          <defs>
+            <marker id="arr-c2" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#22d3ee"/></marker>
+            <marker id="arr-r2" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#fb7185"/></marker>
+            <marker id="arr-e2" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto"><polygon points="0 0, 9 3.5, 0 7" fill="#34d399"/></marker>
+          </defs>
+
+          <!-- Stage 1 Container: Blocking Strategy -->
+          <rect x="20" y="20" width="480" height="160" rx="10" fill="rgba(8, 51, 68, 0.3)" stroke="#22d3ee" stroke-width="1.5"/>
+          <text x="260" y="42" fill="#38bdf8" font-size="11" font-weight="700" text-anchor="middle">GIAI ĐOẠN 1: BLOCKING STRATEGY (LỌC NHANH)</text>
+          
+          <rect x="40" y="60" width="130" height="50" rx="6" fill="rgba(30, 41, 59, 0.7)" stroke="#38bdf8" stroke-width="1"/>
+          <text x="105" y="80" fill="#ffffff" font-size="9" font-weight="600" text-anchor="middle">Khóa 1: DOB + Tên</text>
+          <text x="105" y="96" fill="#94a3b8" font-size="7.5" text-anchor="middle">DOB + 3 ký tự đầu</text>
+
+          <rect x="195" y="60" width="130" height="50" rx="6" fill="rgba(30, 41, 59, 0.7)" stroke="#38bdf8" stroke-width="1"/>
+          <text x="260" y="80" fill="#ffffff" font-size="9" font-weight="600" text-anchor="middle">Khóa 2: Phone Đuôi</text>
+          <text x="260" y="96" fill="#94a3b8" font-size="7.5" text-anchor="middle">4 số cuối điện thoại</text>
+
+          <rect x="350" y="60" width="130" height="50" rx="6" fill="rgba(30, 41, 59, 0.7)" stroke="#38bdf8" stroke-width="1"/>
+          <text x="415" y="80" fill="#ffffff" font-size="9" font-weight="600" text-anchor="middle">Khóa 3: CCCD</text>
+          <text x="415" y="96" fill="#94a3b8" font-size="7.5" text-anchor="middle">Khớp số định danh</text>
+
+          <rect x="40" y="125" width="440" height="40" rx="6" fill="rgba(6, 78, 59, 0.4)" stroke="#34d399" stroke-width="1"/>
+          <text x="260" y="144" fill="#34d399" font-size="9.5" font-weight="700" text-anchor="middle">TẬP ỨNG VIÊN TIỀM NĂNG (Candidate Pool: 3 - 10 hồ sơ)</text>
+          <text x="260" y="157" fill="#cbd5e1" font-size="8" text-anchor="middle">Thu hẹp không gian tìm kiếm từ 1.000.000 bản ghi nhờ Database Index</text>
+
+          <!-- Connector -->
+          <line x1="500" y1="100" x2="570" y2="100" stroke="#22d3ee" stroke-width="2" marker-end="url(#arr-c2)"/>
+          <text x="535" y="92" fill="#22d3ee" font-size="8" text-anchor="middle">Pipeline</text>
+
+          <!-- Stage 2 Container: Probabilistic & Levenshtein -->
+          <rect x="570" y="20" width="560" height="160" rx="10" fill="rgba(76, 29, 149, 0.3)" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="850" y="42" fill="#a78bfa" font-size="11" font-weight="700" text-anchor="middle">GIAI ĐOẠN 2: TÍNH ĐIỂM TRỌNG SỐ &amp; LEVENSHTEIN DISTANCE</text>
+
+          <!-- Calculation Formula items -->
+          <g transform="translate(590, 60)">
+            <rect x="0" y="0" width="160" height="48" rx="6" fill="rgba(30, 41, 59, 0.7)" stroke="#a78bfa" stroke-width="1"/>
+            <text x="80" y="20" fill="#ffffff" font-size="9" font-weight="600" text-anchor="middle">Họ và Tên (30%)</text>
+            <text x="80" y="36" fill="#38bdf8" font-size="8" text-anchor="middle">Levenshtein similarity</text>
+
+            <rect x="180" y="0" width="160" height="48" rx="6" fill="rgba(30, 41, 59, 0.7)" stroke="#a78bfa" stroke-width="1"/>
+            <text x="260" y="20" fill="#ffffff" font-size="9" font-weight="600" text-anchor="middle">Số CCCD (35%)</text>
+            <text x="260" y="36" fill="#34d399" font-size="8" text-anchor="middle">Exact match score</text>
+
+            <rect x="360" y="0" width="160" height="48" rx="6" fill="rgba(30, 41, 59, 0.7)" stroke="#a78bfa" stroke-width="1"/>
+            <text x="440" y="20" fill="#ffffff" font-size="9" font-weight="600" text-anchor="middle">Ngày Sinh (20%)</text>
+            <text x="440" y="36" fill="#cbd5e1" font-size="8" text-anchor="middle">Exact DOB check</text>
+          </g>
+
+          <!-- Total Result Score Box -->
+          <rect x="590" y="125" width="520" height="40" rx="6" fill="rgba(8, 51, 68, 0.8)" stroke="#22d3ee" stroke-width="1.5"/>
+          <text x="850" y="144" fill="#38bdf8" font-size="10" font-weight="800" text-anchor="middle">TỔNG ĐIỂM TƯƠNG ĐỒNG: MATCH SCORE (0.00% - 100.00%)</text>
+          <text x="850" y="157" fill="#cbd5e1" font-size="8" text-anchor="middle">Điểm số được làm tròn 2 chữ số thập phân (RoundingMode.HALF_UP)</text>
+        </svg>
+      </div>
+
+      <div class="card cyan" style="margin-top: 6px;">
+        <div class="card-header"><div class="card-dot cyan"></div><h3>Tại Sao Cần 2 Giai Đoạn?</h3></div>
+        <p>Nếu so sánh toàn bộ bảng $N \times M$, với 1 triệu bệnh nhân sẽ mất $1.000.000 \times 1.000.000 = 10^{12}$ phép toán $\rightarrow$ Gây treo máy chủ. <strong>Blocking Strategy</strong> thu gọn bài toán xuống chỉ còn 5 phép toán Levenshtein, tốc độ phản hồi chỉ vài miligiây!</p>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Thuật toán matching của em kết hợp Blocking Strategy để lọc nhanh qua DB Index, sau đó dùng công thức khoảng cách Levenshtein đã chuẩn hóa bỏ dấu tiếng Việt để tính toán độ tương đồng chính xác từng phần trăm."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 8: LUỒNG 3 - PHÂN LOẠI NGƯỠNG & REVIEW QUEUE ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot amber"></div>
+          <div class="tag" style="color: #fbbf24;">BUSINESS WORKFLOW 03</div>
+        </div>
+        <h1 class="title">Phân Loại 3 Ngưỡng &amp; Hàng Đợi Duyệt Thủ Công (Review Queue)</h1>
+      </div>
+      <div class="slide-index">SLIDE 08 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="diagram-box">
+        <svg viewBox="0 0 1150 190">
+          <defs>
+            <marker id="arr-em3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#34d399"/></marker>
+            <marker id="arr-am3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#fbbf24"/></marker>
+            <marker id="arr-ro3" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto"><polygon points="0 0, 8 3, 0 6" fill="#fb7185"/></marker>
+          </defs>
+
+          <!-- Input Score -->
+          <rect x="20" y="70" width="160" height="50" rx="8" fill="rgba(8, 51, 68, 0.6)" stroke="#22d3ee" stroke-width="2"/>
+          <text x="100" y="92" fill="#ffffff" font-size="10" font-weight="700" text-anchor="middle">Điểm Match Score</text>
+          <text x="100" y="108" fill="#38bdf8" font-size="8.5" text-anchor="middle">0.00% &bull; 100.00%</text>
+
+          <!-- Decision Diamond -->
+          <g transform="translate(240, 95)">
+            <rect x="-35" y="-35" width="70" height="70" rx="6" transform="rotate(45)" fill="rgba(136, 19, 55, 0.4)" stroke="#fb7185" stroke-width="1.5"/>
+            <text x="0" y="4" fill="#ffffff" font-size="9" font-weight="700" text-anchor="middle">Ngưỡng?</text>
+          </g>
+
+          <line x1="180" y1="95" x2="200" y2="95" stroke="#22d3ee" stroke-width="1.5"/>
+
+          <!-- Branch 1: >= 92% (Auto Approved) -->
+          <path d="M 275 70 L 360 35 L 430 35" fill="none" stroke="#34d399" stroke-width="2" marker-end="url(#arr-em3)"/>
+          <text x="350" y="28" fill="#34d399" font-size="8" font-weight="700">Điểm &ge; 92%</text>
+
+          <rect x="430" y="10" width="310" height="50" rx="8" fill="rgba(6, 78, 59, 0.5)" stroke="#34d399" stroke-width="1.5"/>
+          <text x="585" y="30" fill="#34d399" font-size="10" font-weight="700" text-anchor="middle">✅ TỰ ĐỘNG GỘP (Auto Approved)</text>
+          <text x="585" y="46" fill="#cbd5e1" font-size="8" text-anchor="middle">patient.master_id = EID &bull; match_status = MATCHED</text>
+
+          <!-- Branch 2: 65% <= Score < 92% (Review Queue) -->
+          <line x1="275" y1="95" x2="430" y2="95" stroke="#fbbf24" stroke-width="2" marker-end="url(#arr-am3)"/>
+          <text x="350" y="88" fill="#fbbf24" font-size="8" font-weight="700">65% - 92%</text>
+
+          <rect x="430" y="70" width="310" height="50" rx="8" fill="rgba(120, 53, 15, 0.5)" stroke="#fbbf24" stroke-width="1.5"/>
+          <text x="585" y="90" fill="#fbbf24" font-size="10" font-weight="700" text-anchor="middle">⚠️ HÀNG ĐỢI DUYỆT (Review Queue)</text>
+          <text x="585" y="106" fill="#cbd5e1" font-size="8" text-anchor="middle">Lưu match_candidate (PENDING) &bull; Chờ bác sĩ đối soát</text>
+
+          <!-- Branch 3: < 65% (New Master) -->
+          <path d="M 275 120 L 360 155 L 430 155" fill="none" stroke="#a78bfa" stroke-width="2" marker-end="url(#arr-em3)"/>
+          <text x="350" y="150" fill="#a78bfa" font-size="8" font-weight="700">Điểm &lt; 65%</text>
+
+          <rect x="430" y="130" width="310" height="50" rx="8" fill="rgba(76, 29, 149, 0.5)" stroke="#a78bfa" stroke-width="1.5"/>
+          <text x="585" y="150" fill="#a78bfa" font-size="10" font-weight="700" text-anchor="middle">🆕 HỒ SƠ MỚI (New Master)</text>
+          <text x="585" y="166" fill="#cbd5e1" font-size="8" text-anchor="middle">Sinh EID độc lập mới &bull; match_status = NEW_MASTER</text>
+
+          <!-- Review Actions -->
+          <line x1="740" y1="95" x2="810" y2="95" stroke="#fbbf24" stroke-width="1.5"/>
+
+          <g transform="translate(810, 60)">
+            <rect x="0" y="0" width="320" height="70" rx="8" fill="rgba(15, 23, 42, 0.8)" stroke="#fbbf24" stroke-width="1.5"/>
+            <text x="160" y="18" fill="#ffffff" font-size="9" font-weight="700" text-anchor="middle">👤 HÀNH ĐỘNG CỦA REVIEWER</text>
+            <rect x="15" y="28" width="135" height="30" rx="4" fill="rgba(6, 78, 59, 0.6)" stroke="#34d399" stroke-width="1"/>
+            <text x="82" y="47" fill="#34d399" font-size="8" font-weight="700" text-anchor="middle">DUYỆT GỘP (Merge)</text>
+
+            <rect x="170" y="28" width="135" height="30" rx="4" fill="rgba(136, 19, 55, 0.6)" stroke="#fb7185" stroke-width="1"/>
+            <text x="237" y="47" fill="#fb7185" font-size="8" font-weight="700" text-anchor="middle">TỪ CHỐI (Reject)</text>
+          </g>
+        </svg>
+      </div>
+
+      <div class="grid-2" style="margin-top: 6px;">
+        <div class="card emerald">
+          <div class="card-header"><div class="card-dot emerald"></div><h3>Khi Chuyên Viên Bấm "Duyệt Gộp" (Merge)</h3></div>
+          <p>Hồ sơ nguồn được trỏ vào mã EID đã chọn, trạng thái đổi thành <code>MATCHED</code>. Toàn bộ tiền sử y tế được gom chung vào Golden Record.</p>
+        </div>
+        <div class="card rose">
+          <div class="card-header"><div class="card-dot rose"></div><h3>Khi Chuyên Viên Bấm "Từ Chối" (Reject)</h3></div>
+          <p>Dữ liệu bệnh nhân được giữ nguyên độc lập, chuyển trạng thái <code>REJECTED</code>, tuyệt đối không bị gộp sai và không bị xóa khỏi cơ sở dữ liệu.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Quy trình duyệt hồ sơ tuân thủ triệt để nguyên tắc Human-in-the-loop. Các ca mập mờ từ 65% đến 92% sẽ được đưa vào hàng đợi để chuyên viên xem giao diện đối chiếu 2 cột và ra quyết định Gộp hoặc Từ chối."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 9: LUỒNG 4 - TRUY VẾT & AUDIT TRAIL ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot emerald"></div>
+          <div class="tag" style="color: #34d399;">BUSINESS WORKFLOW 04</div>
+        </div>
+        <h1 class="title">Nhật Ký Quyết Định &amp; Truy Vết Bất Biến (Audit Trail)</h1>
+      </div>
+      <div class="slide-index">SLIDE 09 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="grid-2">
+        <div class="card cyan">
+          <div class="card-header">
+            <div class="card-dot cyan"></div>
+            <h3>Bảng Lưu Vết: match_decision_log</h3>
+          </div>
+          <p>Mỗi hành vi can thiệp vào định danh đều được ghi nhận vĩnh viễn:</p>
+          <ul>
+            <li><code>performed_by</code>: ID/Email của nhân viên y tế (hoặc SYSTEM).</li>
+            <li><code>action</code>: Hành động rõ ràng (<code>MERGE</code>, <code>REJECT</code>, <code>CREATE</code>).</li>
+            <li><code>reason</code>: Ghi chú giải trình bắt buộc của chuyên viên.</li>
+            <li><code>created_at</code>: Mốc thời gian chính xác tới microsecond.</li>
+            <li><code>candidate_id</code>: Liên kết trực tiếp tới hồ sơ ứng viên.</li>
+          </ul>
+        </div>
+
+        <div class="card emerald">
+          <div class="card-header">
+            <div class="card-dot emerald"></div>
+            <h3>Timeline Lịch Sử Thời Gian Thực (Angular UI)</h3>
+          </div>
+          <p>Tại trang chi tiết Patient Master Detail:</p>
+          <ul>
+            <li>Giao diện Timeline trực quan liệt kê từng mốc sự kiện gộp hồ sơ.</li>
+            <li>Bác sĩ hoặc Thanh tra bảo hiểm có thể xem lại: Hồ sơ này ban đầu tạo từ BV Bạch Mai, sau đó ngày nào được gộp thêm bản ghi từ BV K.</li>
+            <li>Đáp ứng 100% tiêu chuẩn minh bạch của Luật Khám chữa bệnh và Bộ Y Tế.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Audit timeline visual -->
+      <div class="diagram-box" style="margin-top: 6px;">
+        <svg viewBox="0 0 1100 80">
+          <line x1="50" y1="40" x2="1050" y2="40" stroke="#334155" stroke-width="2"/>
+          
+          <circle cx="150" cy="40" r="10" fill="#020617" stroke="#38bdf8" stroke-width="2"/>
+          <text x="150" y="22" fill="#38bdf8" font-size="8" font-weight="700" text-anchor="middle">2026-01-10</text>
+          <text x="150" y="62" fill="#cbd5e1" font-size="8" text-anchor="middle">Khởi tạo EID gốc từ BV Bạch Mai</text>
+
+          <circle cx="550" cy="40" r="10" fill="#020617" stroke="#fbbf24" stroke-width="2"/>
+          <text x="550" y="22" fill="#fbbf24" font-size="8" font-weight="700" text-anchor="middle">2026-03-15</text>
+          <text x="550" y="62" fill="#cbd5e1" font-size="8" text-anchor="middle">Chuyên viên Reviewer A duyệt MERGE bản ghi từ BV K</text>
+
+          <circle cx="950" cy="40" r="10" fill="#020617" stroke="#34d399" stroke-width="2"/>
+          <text x="950" y="22" fill="#34d399" font-size="8" font-weight="700" text-anchor="middle">HIỆN TẠI</text>
+          <text x="950" y="62" fill="#34d399" font-size="8" font-weight="700" text-anchor="middle">Hồ sơ thống nhất 2 viện (Full Audit History)</text>
+        </svg>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Trong y tế, tính toàn vẹn và minh bạch là số một. Mọi thao tác gộp hay từ chối đều được lưu vết trong match_decision_log. Nếu có sự cố gộp nhầm, thanh tra y tế có thể mở timeline và biết chính xác ai là người đã phê duyệt ca đó."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 10: LUỒNG 5 - CẤU HÌNH TRỌNG SỐ THUẬT TOÁN ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot violet"></div>
+          <div class="tag" style="color: #a78bfa;">BUSINESS WORKFLOW 05</div>
+        </div>
+        <h1 class="title">Quản Lý Phiên Bản Trọng Số Thuật Toán (Weight Config)</h1>
+      </div>
+      <div class="slide-index">SLIDE 10 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="grid-2">
+        <div class="card violet">
+          <div class="card-header">
+            <div class="card-dot violet"></div>
+            <h3>Lý Do Cần Cấu Hình Động?</h3>
+          </div>
+          <ul>
+            <li><strong>Bệnh viện Trung ương:</strong> Tỷ lệ có CCCD gắn chip rất cao &rarr; Cần tăng <code>national_id_weight</code> lên 40%.</li>
+            <li><strong>Bệnh viện Nhi đồng:</strong> Trẻ sơ sinh chưa có CCCD, chưa có số điện thoại riêng &rarr; Cần tăng trọng số Họ tên mẹ, Ngày sinh và Địa chỉ.</li>
+            <li>Hệ thống <strong>không hardcode</strong> trong code Java mà cho phép Admin tinh chỉnh qua Web UI tức thì mà không cần build/deploy lại máy chủ.</li>
+          </ul>
+        </div>
+
+        <div class="card cyan">
+          <div class="card-header">
+            <div class="card-dot cyan"></div>
+            <h3>Cơ Chế Quản Lý Phiên Bản (Versioning)</h3>
+          </div>
+          <ul>
+            <li>Lưu trữ trong bảng <code>algorithm_weight_config</code> theo từng phiên bản (<code>v1.0</code>, <code>v1.1</code>...).</li>
+            <li>Chỉ duy nhất 1 phiên bản có cờ <code>is_active = true</code> tại một thời điểm.</li>
+            <li>Hỗ trợ <strong>Rollback</strong> về phiên bản cũ ngay lập tức nếu phiên bản mới thử nghiệm cho kết quả độ chính xác chưa mong muốn.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card" style="background: rgba(15, 23, 42, 0.4); border-color: #334155; margin-top: 6px;">
+        <table style="width: 100%;">
+          <thead>
+            <tr>
+              <th>Tham Số Cấu Hình</th>
+              <th>Mặc Định</th>
+              <th>Viện Người Lớn</th>
+              <th>Viện Nhi Đồng</th>
+              <th>Mục Đích Nghiệp Vụ</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><code>national_id_weight</code></td>
+              <td><strong>35.00%</strong></td>
+              <td>45.00%</td>
+              <td>0.00%</td>
+              <td>Độ ưu tiên số CCCD/Định danh cá nhân</td>
+            </tr>
+            <tr>
+              <td><code>name_weight</code></td>
+              <td><strong>30.00%</strong></td>
+              <td>25.00%</td>
+              <td>40.00%</td>
+              <td>Độ ưu tiên khoảng cách Levenshtein Họ &amp; Tên</td>
+            </tr>
+            <tr>
+              <td><code>dob_weight</code></td>
+              <td><strong>20.00%</strong></td>
+              <td>15.00%</td>
+              <td>35.00%</td>
+              <td>Độ ưu tiên ngày/tháng/năm sinh</td>
+            </tr>
+            <tr>
+              <td><code>auto_approval_threshold</code></td>
+              <td><strong>92.00%</strong></td>
+              <td>90.00%</td>
+              <td>95.00%</td>
+              <td>Ngưỡng điểm để máy tự động gộp</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Tính năng cấu hình trọng số theo phiên bản giúp hệ thống thích ứng với mọi mô hình cơ sở y tế. Từ viện trung ương đến viện nhi đồng, Admin có thể điều chỉnh trọng số trực tiếp trên web mà không cần sửa một dòng code nào."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 11: ĐIỂM SÁNG KỸ THUẬT ĐÃ GIẢI QUYẾT ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot emerald"></div>
+          <div class="tag" style="color: #34d399;">TECHNICAL HIGHLIGHTS</div>
+        </div>
+        <h1 class="title">Các Thách Thức Kỹ Thuật Đã Giải Quyết Trong Đề Tài</h1>
+      </div>
+      <div class="slide-index">SLIDE 11 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <table style="background: rgba(15, 23, 42, 0.7); border-radius: 8px; border: 1px solid #1e293b;">
+        <thead>
+          <tr>
+            <th style="width: 25%;">Thách Thức Kỹ Thuật</th>
+            <th style="width: 45%;">Giải Pháp Kiến Trúc Trong Codebase</th>
+            <th style="width: 30%;">Hiệu Quả Thực Tế Đạt Được</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong style="color: #fb7185;">Transaction vs Async Race Condition</strong></td>
+            <td>Tách riêng <code>ImportJobOrchestrator</code> với <code>Propagation.NEVER</code> để commit bản ghi Job trước khi Thread nền <code>@Async</code> khởi chạy.</td>
+            <td><span class="badge badge-emerald">Triệt tiêu 100% lỗi EntityNotFoundException</span></td>
+          </tr>
+          <tr>
+            <td><strong style="color: #fbbf24;">Lỗ hổng bảo mật Token (XSS &amp; CSRF)</strong></td>
+            <td>Access Token lưu bộ nhớ ngắn hạn; Refresh Token lưu trong <strong>Cookie <code>HttpOnly</code> + <code>SameSite=Lax</code></strong> kèm cơ chế xoay vòng token.</td>
+            <td><span class="badge badge-emerald">JavaScript không thể đánh cắp token đăng nhập</span></td>
+          </tr>
+          <tr>
+            <td><strong style="color: #a78bfa;">Hiệu năng đối soát 1.000.000 hồ sơ</strong></td>
+            <td>Áp dụng <strong>Blocking Strategy</strong> lọc nhanh qua DB Index trước khi tính Levenshtein Distance.</td>
+            <td><span class="badge badge-emerald">Giảm độ phức tạp từ O(N²) xuống O(K), K &le; 10</span></td>
+          </tr>
+          <tr>
+            <td><strong style="color: #38bdf8;">Độ mượt mà và phản ứng của UI</strong></td>
+            <td>Sử dụng <strong>Angular 18 Standalone Components &amp; Signals</strong>, không cần NgModules, quản lý state tức thì.</td>
+            <td><span class="badge badge-emerald">Không giật lag khi polling tiến độ nạp dữ liệu</span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="grid-2" style="margin-top: 8px;">
+        <div class="card cyan">
+          <div class="card-header"><div class="card-dot cyan"></div><h3>RESTful API Chuẩn Hóa</h3></div>
+          <p>Mọi endpoint đều đóng gói theo cấu trúc thống nhất <code>ApiResponse&lt;T&gt;</code>, phân trang <code>ResultPagination</code> và kiểm soát lỗi tập trung với <code>@RestControllerAdvice</code>.</p>
+        </div>
+        <div class="card emerald">
+          <div class="card-header"><div class="card-dot emerald"></div><h3>Không Phụ Thuộc UI Framework Nặng</h3></div>
+          <p>Tự xây dựng hệ thống Design Tokens bằng Pure SCSS, giúp ứng dụng nhẹ, tốc độ tải trang ban đầu dưới 1.2 giây và dễ dàng tùy biến giao diện.</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Đây là slide đúc kết các bài toán kỹ thuật chuyên sâu em đã giải quyết. Từ xử lý bất đồng bộ đa luồng tránh xung đột transaction, bảo mật token hai lớp với HttpOnly Cookie, cho tới tối ưu hóa thuật toán để đáp ứng dữ liệu y tế quy mô lớn."
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== SLIDE 12: TỔNG KẾT & ROADMAP ==================== -->
+  <section class="slide">
+    <div class="header">
+      <div class="header-left">
+        <div class="header-tag-row">
+          <div class="pulse-dot cyan"></div>
+          <div class="tag" style="color: #22d3ee;">CONCLUSION &amp; FUTURE ROADMAP</div>
+        </div>
+        <h1 class="title">Kết Luận Đề Tài &amp; Lộ Trình Nâng Cấp Tương Lai</h1>
+      </div>
+      <div class="slide-index">SLIDE 12 / 12</div>
+    </div>
+
+    <div class="content-area">
+      <div class="grid-2">
+        <div class="card emerald">
+          <div class="card-header">
+            <div class="card-dot emerald"></div>
+            <h3>🎉 Kết Quả Đạt Được Của Đề Tài</h3>
+          </div>
+          <ul>
+            <li><strong>Xây dựng hoàn thiện hệ thống MPI Web:</strong> Trọn vẹn từ Backend Spring Boot 3 đến Frontend Angular 18 sẵn sàng triển khai.</li>
+            <li><strong>Tự động hóa định danh &ge; 85%:</strong> Giảm thời gian chờ đợi tiếp đón bệnh nhân từ 10 phút xuống còn dưới 1 phút.</li>
+            <li><strong>Bảo đảm an toàn lâm sàng:</strong> Không còn tình trạng thất lạc tiền sử bệnh án và dị ứng thuốc khi khám liên viện.</li>
+            <li><strong>Giải quyết trọn vẹn các thách thức kỹ thuật:</strong> Concurrency, Security, Scalability và Clean Code.</li>
+          </ul>
+        </div>
+
+        <div class="card violet">
+          <div class="card-header">
+            <div class="card-dot violet"></div>
+            <h3>🚀 Lộ Trình Nâng Cấp Tương Lai (Roadmap)</h3>
+          </div>
+          <ul>
+            <li><strong>Tích hợp chuẩn quốc tế HL7 FHIR:</strong> Xây dựng REST API chuẩn <code>FHIR Patient Resource</code> để liên thông trực tiếp với PACS/LIS quốc tế.</li>
+            <li><strong>Thuật toán ngữ âm tiếng Việt:</strong> Bổ sung Soundex/Double Metaphone điều chỉnh riêng cho các cặp họ tên phát âm tương tự trong tiếng Việt.</li>
+            <li><strong>Machine Learning Feedback Loop:</strong> Ứng dụng mô hình học máy để tự động tối ưu hóa trọng số dựa trên lịch sử duyệt gộp của các bác sĩ.</li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card" style="background: rgba(15, 23, 42, 0.5); border-color: #38bdf8; text-align: center; padding: 14px; margin-top: 6px;">
+        <h3 style="color: #38bdf8; font-size: 13px; margin-bottom: 4px;">CHÂN THÀNH CẢM ƠN QUÝ THẦY CÔ VÀ HỘI ĐỒNG ĐÃ LẮNG NGHE!</h3>
+        <p style="color: #cbd5e1; font-size: 10px;">Em xin sẵn sàng tiếp nhận các câu hỏi nhận xét và đóng góp từ Hội đồng phản biện.</p>
+      </div>
+    </div>
+
+    <div class="speaker-box">
+      <div class="speaker-label">🎙️ Speaker Note:</div>
+      <div class="speaker-text">
+        "Tóm lại, đề tài Master Patient Index đã giải quyết trọn vẹn bài toán thực tế cấp bách của ngành y tế. Hệ thống sẵn sàng mở rộng tích hợp chuẩn quốc tế HL7 FHIR trong giai đoạn tiếp theo. Em xin cảm ơn Hội đồng đã chú ý lắng nghe!"
+      </div>
+    </div>
+  </section>
+
+</body>
+</html>
+
